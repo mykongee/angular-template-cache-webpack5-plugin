@@ -1,0 +1,40 @@
+{
+  "name": "angular-template-cache-webpack5-plugin",
+  "version": "1.0.1",
+  "license": "MIT",
+  "description": "Webpack 5 plugin that concatenates and registers AngularJS templates in the $templateCache, supporting multiple modules",
+  "author": "Rafael Mussi (https://github.com/rafaelmussi)",
+  "contributors": ["Mike H (https://github.com/mykongee)"],
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "webpack": "^5.36.2"
+  },
+  "dependencies": {
+    "glob": "^7.1.6",
+    "glob-parent": "^5.1.1",
+    "jsesc": "^3.0.2",
+    "lodash.template": "^4.5.0",
+    "schema-utils": "^3.1.1"
+  },
+  "peerDependencies": {
+    "webpack": "^5.0.0"
+  },
+  "keywords": [
+    "angular-templatecache-webpack-plugin",
+    "angular",
+    "angularjs",
+    "angular js",
+    "templatecache",
+    "template",
+    "template cache",
+    "webpack",
+    "plugin",
+    "cache busting"
+  ],
+  "bugs": "https://github.com/mykongee/angular-template-cache-webpack5-plugin/issues",
+  "homepage": "https://github.com/mykongee/angular-template-cache-webpack5-plugin",
+  "repository": "https://github.com/mykongee/angular-template-cache-webpack5-plugin.git"
+}
