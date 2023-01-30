@@ -152,17 +152,13 @@ class AngularTemplateCacheWebpackPlugin {
                         cachedTemplates += template + '\n';
                     });
 
-                    outputNormal[outputPaths[0]] = {
-                        filename: outputPaths[0] + '/' + module.outputFilename,
-                        content: cachedTemplates,
-                        size: cachedTemplates.length,
-                    };
-
-                    outputNormal[outputPaths[1]] = {
-                        filename: outputPaths[1] + '/' + module.outputFilename,
-                        content: cachedTemplates,
-                        size: cachedTemplates.length,
-                    };
+                    outputPaths.forEach(outputPath => {
+                        outputNormal[outputPath] = {
+                            filename: outputPath + '/' + module.outputFilename,
+                            content: cachedTemplates,
+                            size: cachedTemplates.length,
+                        }
+                    });
 
                     for (const [key, value] of Object.entries(outputNormal)) {
                         compilation.emitAsset(value.filename, new webpack.sources.RawSource(value.content));
