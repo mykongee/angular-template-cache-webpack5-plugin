@@ -7,6 +7,7 @@ const { validate } = require('schema-utils');
 const webpack = require('webpack');
 const lodashTemplate = require('lodash.template');
 const htmlMinifier = require('html-minifier');
+const uglify = require('uglify-js');
 
 const schema = {
     type: 'object',
@@ -94,7 +95,7 @@ const schema = {
             type: 'boolean',
         },
         isProd: {
-            type: 'boolean', // todo: should uglify
+            type: 'boolean',
         }
     },
     additionalProperties: false,
@@ -115,6 +116,7 @@ class AngularTemplateCacheWebpackPlugin {
         const userOptions = options || {};
 
         const defaultOptions = {
+            isProd: userOptions.isProd === undefined ? '' : userOptions.isProd,
             source: userOptions.source === undefined ? '' : userOptions.source,
             root: userOptions.root === undefined ? '' : userOptions.root,
             destination: userOptions.destination === undefined ? '' : userOptions.destination,
@@ -152,17 +154,13 @@ class AngularTemplateCacheWebpackPlugin {
                         cachedTemplates += template + '\n';
                     });
 
-                    outputNormal[outputPaths[0]] = {
-                        filename: outputPaths[0] + '/' + module.outputFilename,
-                        content: cachedTemplates,
-                        size: cachedTemplates.length,
-                    };
-
-                    outputNormal[outputPaths[1]] = {
-                        filename: outputPaths[1] + '/' + module.outputFilename,
-                        content: cachedTemplates,
-                        size: cachedTemplates.length,
-                    };
+                    outputPaths.forEach(outputPath => {
+                        outputNormal[outputPath] = {
+                            filename: outputPath + '/' + module.outputFilename,
+                            content: cachedTemplates,
+                            size: cachedTemplates.length,
+                        }
+                    });
 
                     for (const [key, value] of Object.entries(outputNormal)) {
                         compilation.emitAsset(value.filename, new webpack.sources.RawSource(value.content));
@@ -174,7 +172,6 @@ class AngularTemplateCacheWebpackPlugin {
         }
 
     init() {
-        // this.files = typeof this.options.source === 'string' ? glob.sync(this.options.source) : this.options.source;
         this.files = {};
         this.modules = this.options.modules;
         this.moduleToRoot = {};

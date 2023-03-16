@@ -1,6 +1,6 @@
 {
   "name": "angular-cache-webpack5",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "MIT",
   "description": "Webpack 5 plugin that concatenates and registers AngularJS templates in the $templateCache, supporting multiple modules",
   "author": "Rafael Mussi (https://github.com/rafaelmussi)",
@@ -19,7 +19,8 @@
     "glob-parent": "^5.1.1",
     "jsesc": "^3.0.2",
     "lodash.template": "^4.5.0",
-    "schema-utils": "^3.1.1"
+    "schema-utils": "^3.1.1",
+    "uglify-js": "^3.0.5"
   },
   "peerDependencies": {
     "webpack": "^5.0.0"
