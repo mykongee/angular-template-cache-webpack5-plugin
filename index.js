@@ -140,7 +140,7 @@ class AngularTemplateCacheWebpackPlugin {
             this.modules.forEach(module => {
                 this.files[module.moduleName].forEach(f => compilation.fileDependencies.add(path.join(compiler.context, f)));
                 compilation.hooks.additionalAssets.tapAsync('AngularTemplateCacheWebpackPlugin', cb => {
-                    this.processTemplates(module.moduleName);
+                    this.processTemplates(module);
 
                     const dest = compiler.options.output.path;
                     const outputPaths = [];
@@ -194,23 +194,23 @@ class AngularTemplateCacheWebpackPlugin {
         this.templateFooter = this.options.templateFooter;
     }
 
-    processTemplates(moduleName) {
+    processTemplates(module) {
         this.templatelist = [];
-        this.processHeader(moduleName);
-        this.processBody(moduleName);
-        this.processFooter(moduleName);
+        this.processHeader(module);
+        this.processBody(module);
+        this.processFooter(module);
     }
 
-    processHeader(moduleName) {
+    processHeader(module) {
         let header = lodashTemplate(this.templateHeader)({
-            module: moduleName,
+            module: module.moduleName,
             standalone: this.options.standalone ? ', []' : '',
         });
         this.templatelist.unshift(header);
     }
 
-    processBody(moduleName) {
-        this.files[moduleName].forEach(file => {
+    processBody(module) {
+        this.files[module.moduleName].forEach(file => {
             const tpl = {};
             tpl.source = fs.readFileSync(file);
             // tpl.source = htmlmin(tpl.source);
@@ -233,7 +233,6 @@ class AngularTemplateCacheWebpackPlugin {
                 removeRedundantAttributes: true,
                 removeScriptTypeAttributes: true,
                 removeStyleLinkTypeAttributes: true,
-                removeTagWhitespace: true,
                 sortAttributes: true,
                 sortClassName: true,
                 trimCustomFragments: true,
@@ -243,7 +242,7 @@ class AngularTemplateCacheWebpackPlugin {
 
             let htmlRootDir = globParent(this.options.source);
             let filename = path.posix.relative(htmlRootDir, file);
-            let url = path.posix.join(this.moduleToRoot[moduleName], filename);
+            let url = path.posix.join(this.moduleToRoot[module.moduleName], resolveFileName(filename, module.stripPrefix));
 
             if (this.options.root === '.' || this.options.root.indexOf('./') === 0) {
                 url = './' + url;
@@ -258,9 +257,13 @@ class AngularTemplateCacheWebpackPlugin {
         });
     }
 
-    processFooter(moduleName) {
+    processFooter(module) {
         this.templatelist.push(this.templateFooter);
     }
 }
 
+function resolveFileName(filename, stripPrefix) {
+    filename = filename.replace(stripPrefix, "");
+    return filename;
+}
 module.exports = AngularTemplateCacheWebpackPlugin;
