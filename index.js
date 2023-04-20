@@ -78,6 +78,9 @@ const schema = {
                 }
             }
         },
+        getTemplateCacheKey: {
+            type: 'any',
+        },
         templateHeader: {
             type: 'string',
         },
@@ -102,8 +105,6 @@ const schema = {
 
 class AngularTemplateCacheWebpackPlugin {
     constructor(options) {
-        validate(schema, options, { name: 'AngularTemplateCacheWebpackPlugin' });
-
         const TEMPLATE_HEADER =
             "angular.module('<%= module %>'<%= standalone %>).run(['$templateCache', function($templateCache) {";
         const TEMPLATE_BODY = '$templateCache.put("<%= url %>","<%= contents %>");';
@@ -126,6 +127,7 @@ class AngularTemplateCacheWebpackPlugin {
             templateFooter: userOptions.templateFooter === undefined ? TEMPLATE_FOOTER : userOptions.templateFooter,
             escapeOptions: userOptions.escapeOptions === undefined ? {} : userOptions.escapeOptions,
             standalone: !!userOptions.standalone,
+            getTemplateCacheKey: userOptions.getTemplateCacheKey,
         };
 
         this.options = Object.assign(defaultOptions, userOptions);
@@ -174,7 +176,6 @@ class AngularTemplateCacheWebpackPlugin {
         }
 
     init() {
-        // this.files = typeof this.options.source === 'string' ? glob.sync(this.options.source) : this.options.source;
         this.files = {};
         this.modules = this.options.modules;
         this.moduleToRoot = {};
@@ -188,7 +189,7 @@ class AngularTemplateCacheWebpackPlugin {
                 this.files[module.moduleName].push(module.source);
             }
         });
-
+        this.fileNameToTemplateCacheKey = this.options.fileNameToTemplateCacheKey
         this.templateBody = this.options.templateBody;
         this.templateHeader = this.options.templateHeader;
         this.templateFooter = this.options.templateFooter;
@@ -213,7 +214,6 @@ class AngularTemplateCacheWebpackPlugin {
         this.files[module.moduleName].forEach(file => {
             const tpl = {};
             tpl.source = fs.readFileSync(file);
-            // tpl.source = htmlmin(tpl.source);
             tpl.source = htmlMinifier.minify(
                 tpl.source.toString(),
                 {
@@ -241,16 +241,14 @@ class AngularTemplateCacheWebpackPlugin {
             );
 
             let htmlRootDir = globParent(this.options.source);
-            let filename = path.posix.relative(htmlRootDir, file);
-            let url = path.posix.join(this.moduleToRoot[module.moduleName], resolveFileName(filename, module.stripPrefix));
-
+            let filename = path.posix.relative(htmlRootDir, this.options.getTemplateCacheKey(file));
+            let url = path.posix.join(this.moduleToRoot[module.moduleName], filename);
             if (this.options.root === '.' || this.options.root.indexOf('./') === 0) {
                 url = './' + url;
-            }
+            } 
             tpl.source = lodashTemplate(this.templateBody)({
                 url: url,
                 contents: jsesc(tpl.source.toString('utf8'), this.options.escapeOptions),
-                file: file,
             });
 
             this.templatelist.push(tpl.source);
@@ -262,8 +260,4 @@ class AngularTemplateCacheWebpackPlugin {
     }
 }
 
-function resolveFileName(filename, stripPrefix) {
-    filename = filename.replace(stripPrefix, "");
-    return filename;
-}
 module.exports = AngularTemplateCacheWebpackPlugin;
