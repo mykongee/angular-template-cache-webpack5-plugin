@@ -79,6 +79,9 @@ const schema = {
                 }
             }
         },
+        getTemplateCacheKey: {
+            type: 'any',
+        },
         templateHeader: {
             type: 'string',
         },
@@ -103,8 +106,6 @@ const schema = {
 
 class AngularTemplateCacheWebpackPlugin {
     constructor(options) {
-        validate(schema, options, { name: 'AngularTemplateCacheWebpackPlugin' });
-
         const TEMPLATE_HEADER =
             "angular.module('<%= module %>'<%= standalone %>).run(['$templateCache', function($templateCache) {";
         const TEMPLATE_BODY = '$templateCache.put("<%= url %>","<%= contents %>");';
@@ -128,6 +129,7 @@ class AngularTemplateCacheWebpackPlugin {
             templateFooter: userOptions.templateFooter === undefined ? TEMPLATE_FOOTER : userOptions.templateFooter,
             escapeOptions: userOptions.escapeOptions === undefined ? {} : userOptions.escapeOptions,
             standalone: !!userOptions.standalone,
+            getTemplateCacheKey: userOptions.getTemplateCacheKey,
         };
 
         this.options = Object.assign(defaultOptions, userOptions);
@@ -142,7 +144,7 @@ class AngularTemplateCacheWebpackPlugin {
             this.modules.forEach(module => {
                 this.files[module.moduleName].forEach(f => compilation.fileDependencies.add(path.join(compiler.context, f)));
                 compilation.hooks.additionalAssets.tapAsync('AngularTemplateCacheWebpackPlugin', cb => {
-                    this.processTemplates(module.moduleName);
+                    this.processTemplates(module);
 
                     const dest = compiler.options.output.path;
                     const outputPaths = [];
@@ -185,32 +187,31 @@ class AngularTemplateCacheWebpackPlugin {
                 this.files[module.moduleName].push(module.source);
             }
         });
-
+        this.fileNameToTemplateCacheKey = this.options.fileNameToTemplateCacheKey
         this.templateBody = this.options.templateBody;
         this.templateHeader = this.options.templateHeader;
         this.templateFooter = this.options.templateFooter;
     }
 
-    processTemplates(moduleName) {
+    processTemplates(module) {
         this.templatelist = [];
-        this.processHeader(moduleName);
-        this.processBody(moduleName);
-        this.processFooter(moduleName);
+        this.processHeader(module);
+        this.processBody(module);
+        this.processFooter(module);
     }
 
-    processHeader(moduleName) {
+    processHeader(module) {
         let header = lodashTemplate(this.templateHeader)({
-            module: moduleName,
+            module: module.moduleName,
             standalone: this.options.standalone ? ', []' : '',
         });
         this.templatelist.unshift(header);
     }
 
-    processBody(moduleName) {
-        this.files[moduleName].forEach(file => {
+    processBody(module) {
+        this.files[module.moduleName].forEach(file => {
             const tpl = {};
             tpl.source = fs.readFileSync(file);
-            // tpl.source = htmlmin(tpl.source);
             tpl.source = htmlMinifier.minify(
                 tpl.source.toString(),
                 {
@@ -230,7 +231,6 @@ class AngularTemplateCacheWebpackPlugin {
                 removeRedundantAttributes: true,
                 removeScriptTypeAttributes: true,
                 removeStyleLinkTypeAttributes: true,
-                removeTagWhitespace: true,
                 sortAttributes: true,
                 sortClassName: true,
                 trimCustomFragments: true,
@@ -239,23 +239,21 @@ class AngularTemplateCacheWebpackPlugin {
             );
 
             let htmlRootDir = globParent(this.options.source);
-            let filename = path.posix.relative(htmlRootDir, file);
-            let url = path.posix.join(this.moduleToRoot[moduleName], filename);
-
+            let filename = path.posix.relative(htmlRootDir, this.options.getTemplateCacheKey(file));
+            let url = path.posix.join(this.moduleToRoot[module.moduleName], filename);
             if (this.options.root === '.' || this.options.root.indexOf('./') === 0) {
                 url = './' + url;
-            }
+            } 
             tpl.source = lodashTemplate(this.templateBody)({
                 url: url,
                 contents: jsesc(tpl.source.toString('utf8'), this.options.escapeOptions),
-                file: file,
             });
 
             this.templatelist.push(tpl.source);
         });
     }
 
-    processFooter(moduleName) {
+    processFooter(module) {
         this.templatelist.push(this.templateFooter);
     }
 }
