@@ -239,13 +239,13 @@ class AngularTemplateCacheWebpackPlugin {
             );
 
             let htmlRootDir = globParent(this.options.source);
-            let filename = path.posix.relative(htmlRootDir, this.options.getTemplateCacheKey(file));
+            let filename = path.posix.relative(htmlRootDir, file);
             let url = path.posix.join(this.moduleToRoot[module.moduleName], filename);
             if (this.options.root === '.' || this.options.root.indexOf('./') === 0) {
                 url = './' + url;
             } 
             tpl.source = lodashTemplate(this.templateBody)({
-                url: url,
+                url: this.options.getTemplateCacheKey(filename),
                 contents: jsesc(tpl.source.toString('utf8'), this.options.escapeOptions),
             });
 
