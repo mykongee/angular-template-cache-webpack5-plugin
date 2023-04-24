@@ -1,6 +1,6 @@
 {
   "name": "angular-cache-webpack5",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "license": "MIT",
   "description": "Webpack 5 plugin that concatenates and registers AngularJS templates in the $templateCache, supporting multiple modules",
   "author": "Rafael Mussi (https://github.com/rafaelmussi)",

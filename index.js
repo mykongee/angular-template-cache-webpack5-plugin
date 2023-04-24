@@ -245,7 +245,7 @@ class AngularTemplateCacheWebpackPlugin {
                 url = './' + url;
             } 
             tpl.source = lodashTemplate(this.templateBody)({
-                url: this.options.getTemplateCacheKey(filename),
+                url: this.options.getTemplateCacheKey(url),
                 contents: jsesc(tpl.source.toString('utf8'), this.options.escapeOptions),
             });
 
