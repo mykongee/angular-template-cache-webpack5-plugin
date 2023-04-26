@@ -212,23 +212,16 @@ class AngularTemplateCacheWebpackPlugin {
     processBody(module) {
         const configureSVGPlugin = (filePrefix) => extendDefaultPlugins([
             {
-                name: 'removeViewBox',
-                active: false,
-            },
-            {
-                name: 'removeAttrs',
-                params: {
-                    attrs: 'class'
-                },
-            },
-            {
                 name: 'cleanupIDs',
                 params: {
                     prefix: `${filePrefix}-`,
                     minify: true,
                 }
             },
-            'convertStyleToAttrs',
+            {
+                name: 'removeViewBox',
+                active: false,
+            },
         ]);
         this.files[module.moduleName].forEach(file => {
             const tpl = {};
