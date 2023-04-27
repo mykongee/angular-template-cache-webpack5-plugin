@@ -109,7 +109,8 @@ class AngularTemplateCacheWebpackPlugin {
     constructor(options) {
         const TEMPLATE_HEADER =
             "angular.module('<%= module %>'<%= standalone %>).run(['$templateCache', function($templateCache) {";
-        const TEMPLATE_BODY = '$templateCache.put("<%= url %>",`<%= contents %>`);';
+        const TEMPLATE_BODY = '$templateCache.put("<%= url %>","<%= contents %>");';
+        const TEMPLATE_SVG_BODY = '$templateCache.put("<%= url %>",`<%= contents %>`);';
 
         const TEMPLATE_FOOTER = '}]);';
         const DEFAULT_FILENAME = 'templates.js';
@@ -127,6 +128,7 @@ class AngularTemplateCacheWebpackPlugin {
             modules: userOptions.module === undefined ? DEFAULT_MODULE : userOptions.modules,
             templateHeader: userOptions.templateHeader === undefined ? TEMPLATE_HEADER : userOptions.templateHeader,
             templateBody: userOptions.templateBody === undefined ? TEMPLATE_BODY : userOptions.templateBody,
+            templateSvgBody: userOptions.templateSvgBody === undefined ? TEMPLATE_SVG_BODY : userOptions.templateSvgBody,
             templateFooter: userOptions.templateFooter === undefined ? TEMPLATE_FOOTER : userOptions.templateFooter,
             escapeOptions: userOptions.escapeOptions === undefined ? {} : userOptions.escapeOptions,
             standalone: !!userOptions.standalone,
@@ -190,6 +192,7 @@ class AngularTemplateCacheWebpackPlugin {
         });
         this.fileNameToTemplateCacheKey = this.options.fileNameToTemplateCacheKey
         this.templateBody = this.options.templateBody;
+        this.templateSvgBody = this.options.templateSvgBody;
         this.templateHeader = this.options.templateHeader;
         this.templateFooter = this.options.templateFooter;
     }
@@ -249,10 +252,17 @@ class AngularTemplateCacheWebpackPlugin {
             if (this.options.root === '.' || this.options.root.indexOf('./') === 0) {
                 url = './' + url;
             } 
-            tpl.source = lodashTemplate(this.templateBody)({
-                url: this.options.getTemplateCacheKey(url),
-                contents: isSvg ? tpl.source : jsesc(tpl.source.toString('utf8'), this.options.escapeOptions),
-            });
+            if (isSvg) {
+                tpl.source = lodashTemplate(this.templateSvgBody)({
+                    url: this.options.getTemplateCacheKey(url),
+                    contents: tpl.source
+                });
+            } else {
+                tpl.source = lodashTemplate(this.templateBody)({
+                    url: this.options.getTemplateCacheKey(url),
+                    contents: jsesc(tpl.source.toString('utf8'), this.options.escapeOptions),
+                });
+            }
             this.templatelist.push(tpl.source);
         });
     }
