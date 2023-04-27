@@ -110,6 +110,7 @@ class AngularTemplateCacheWebpackPlugin {
         const TEMPLATE_HEADER =
             "angular.module('<%= module %>'<%= standalone %>).run(['$templateCache', function($templateCache) {";
         const TEMPLATE_BODY = '$templateCache.put("<%= url %>","<%= contents %>");';
+        const TEMPLATE_SVG_BODY = '$templateCache.put("<%= url %>",`<%= contents %>`);';
 
         const TEMPLATE_FOOTER = '}]);';
         const DEFAULT_FILENAME = 'templates.js';
@@ -127,6 +128,7 @@ class AngularTemplateCacheWebpackPlugin {
             modules: userOptions.module === undefined ? DEFAULT_MODULE : userOptions.modules,
             templateHeader: userOptions.templateHeader === undefined ? TEMPLATE_HEADER : userOptions.templateHeader,
             templateBody: userOptions.templateBody === undefined ? TEMPLATE_BODY : userOptions.templateBody,
+            templateSvgBody: userOptions.templateSvgBody === undefined ? TEMPLATE_SVG_BODY : userOptions.templateSvgBody,
             templateFooter: userOptions.templateFooter === undefined ? TEMPLATE_FOOTER : userOptions.templateFooter,
             escapeOptions: userOptions.escapeOptions === undefined ? {} : userOptions.escapeOptions,
             standalone: !!userOptions.standalone,
@@ -190,6 +192,7 @@ class AngularTemplateCacheWebpackPlugin {
         });
         this.fileNameToTemplateCacheKey = this.options.fileNameToTemplateCacheKey
         this.templateBody = this.options.templateBody;
+        this.templateSvgBody = this.options.templateSvgBody;
         this.templateHeader = this.options.templateHeader;
         this.templateFooter = this.options.templateFooter;
     }
@@ -210,19 +213,15 @@ class AngularTemplateCacheWebpackPlugin {
     }
 
     processBody(module) {
-        const configureSVGPlugin = (filePrefix) => extendDefaultPlugins([
-            {
-                name: 'cleanupIDs',
-                params: {
-                    prefix: `${filePrefix}-`,
-                    minify: true,
-                }
+        const optimizeSVG = (fileSource, filePrefix) => optimize(fileSource,{
+            cleanupIDs: {
+                minify: true,
+                prefix: `${filePrefix}-`,
             },
-            {
-                name: 'removeViewBox',
-                active: false,
-            },
-        ]);
+            removeViewBox: false,
+            multipass: true,
+        }).data;
+
         this.files[module.moduleName].forEach(file => {
             const tpl = {};
             tpl.source = fs.readFileSync(file);
@@ -230,9 +229,7 @@ class AngularTemplateCacheWebpackPlugin {
             
             if (isSvg) {
                 const prefix = path.posix.basename(file, path.posix.extname(file));
-                const plugins = configureSVGPlugin(prefix)
-                const svgoOptions = { multipass: true, plugins };
-                tpl.source = optimize(tpl.source, svgoOptions).data;
+                tpl.source = optimizeSVG(tpl.source, prefix);
             } else { 
                 tpl.source = htmlMinifier.minify(
                     tpl.source.toString(), {
@@ -255,10 +252,17 @@ class AngularTemplateCacheWebpackPlugin {
             if (this.options.root === '.' || this.options.root.indexOf('./') === 0) {
                 url = './' + url;
             } 
-            tpl.source = lodashTemplate(this.templateBody)({
-                url: this.options.getTemplateCacheKey(url),
-                contents: isSvg ? tpl.source.toString('utf8') : jsesc(tpl.source.toString('utf8'), this.options.escapeOptions),
-            });
+            if (isSvg) {
+                tpl.source = lodashTemplate(this.templateSvgBody)({
+                    url: this.options.getTemplateCacheKey(url),
+                    contents: tpl.source
+                });
+            } else {
+                tpl.source = lodashTemplate(this.templateBody)({
+                    url: this.options.getTemplateCacheKey(url),
+                    contents: jsesc(tpl.source.toString('utf8'), this.options.escapeOptions),
+                });
+            }
             this.templatelist.push(tpl.source);
         });
     }
