@@ -109,7 +109,7 @@ class AngularTemplateCacheWebpackPlugin {
     constructor(options) {
         const TEMPLATE_HEADER =
             "angular.module('<%= module %>'<%= standalone %>).run(['$templateCache', function($templateCache) {";
-        const TEMPLATE_BODY = '$templateCache.put("<%= url %>","<%= contents %>");';
+        const TEMPLATE_BODY = '$templateCache.put("<%= url %>",`<%= contents %>`);';
 
         const TEMPLATE_FOOTER = '}]);';
         const DEFAULT_FILENAME = 'templates.js';
@@ -210,19 +210,15 @@ class AngularTemplateCacheWebpackPlugin {
     }
 
     processBody(module) {
-        const configureSVGPlugin = (filePrefix) => extendDefaultPlugins([
-            {
-                name: 'cleanupIDs',
-                params: {
-                    prefix: `${filePrefix}-`,
-                    minify: true,
-                }
+        const optimizeSVG = (fileSource, filePrefix) => optimize(fileSource,{
+            cleanupIDs: {
+                minify: true,
+                prefix: `${filePrefix}-`,
             },
-            {
-                name: 'removeViewBox',
-                active: false,
-            },
-        ]);
+            removeViewBox: false,
+            multipass: true,
+        }).data;
+
         this.files[module.moduleName].forEach(file => {
             const tpl = {};
             tpl.source = fs.readFileSync(file);
@@ -230,9 +226,7 @@ class AngularTemplateCacheWebpackPlugin {
             
             if (isSvg) {
                 const prefix = path.posix.basename(file, path.posix.extname(file));
-                const plugins = configureSVGPlugin(prefix)
-                const svgoOptions = { multipass: true, plugins };
-                tpl.source = optimize(tpl.source, svgoOptions).data;
+                tpl.source = optimizeSVG(tpl.source, prefix);
             } else { 
                 tpl.source = htmlMinifier.minify(
                     tpl.source.toString(), {
@@ -257,7 +251,7 @@ class AngularTemplateCacheWebpackPlugin {
             } 
             tpl.source = lodashTemplate(this.templateBody)({
                 url: this.options.getTemplateCacheKey(url),
-                contents: isSvg ? tpl.source.toString('utf8') : jsesc(tpl.source.toString('utf8'), this.options.escapeOptions),
+                contents: isSvg ? tpl.source : jsesc(tpl.source.toString('utf8'), this.options.escapeOptions),
             });
             this.templatelist.push(tpl.source);
         });
