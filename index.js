@@ -3,108 +3,11 @@ const glob = require('glob');
 const path = require('path');
 const jsesc = require('jsesc');
 const globParent = require('glob-parent');
-const { validate } = require('schema-utils');
 const webpack = require('webpack');
 const lodashTemplate = require('lodash.template');
 const htmlMinifier = require('html-minifier');
 const uglify = require('uglify-js');
 const { optimize, extendDefaultPlugins } = require('svgo');
-
-const schema = {
-    type: 'object',
-    properties: {
-        source: {
-            anyOf: [
-                {
-                    type: 'string',
-                    minLength: 1,
-                },
-                {
-                    type: 'array',
-                    minItems: 1,
-                },
-            ],
-        },
-        root: {
-            type: 'string',
-            minLength: 1,
-        },
-        destination: {
-            anyOf: [
-                {
-                    type: 'string',
-                    minLength: 1,
-                },
-                {
-                    type: 'array',
-                    minItems: 1,
-                },
-            ],
-        },
-        outputFilename: {
-            anyOf: [
-                {
-                    type: 'string',
-                    minLength: 1,
-                },
-                {
-                    type: 'array',
-                    minItems: 1,
-                },
-            ],
-        },
-        module: {
-            type: 'string',
-        },
-        modules: {
-            type: 'array',
-            minItems: 1,
-            properties: {
-                moduleName: {
-                    type: 'string',
-                },
-                outputFilename: {
-                    type: 'string'
-                },
-                source: {
-                    anyOf: [
-                        {
-                            type: 'string',
-                            minLength: 1,
-                        },
-                        {
-                            type: 'array',
-                            minItems: 1,
-                        },
-                    ]
-                }
-            }
-        },
-        getTemplateCacheKey: {
-            type: 'any',
-        },
-        templateHeader: {
-            type: 'string',
-        },
-        templateBody: {
-            type: 'string',
-        },
-        templateFooter: {
-            type: 'string',
-        },
-        escapeOptions: {
-            type: 'object',
-        },
-        standalone: {
-            type: 'boolean',
-        },
-        isProd: {
-            type: 'boolean',
-        }
-    },
-    additionalProperties: false,
-};
-
 class AngularTemplateCacheWebpackPlugin {
     constructor(options) {
         const TEMPLATE_HEADER =
@@ -225,10 +128,10 @@ class AngularTemplateCacheWebpackPlugin {
         this.files[module.moduleName].forEach(file => {
             const tpl = {};
             tpl.source = fs.readFileSync(file);
-            const isSvg = (path.posix.extname(file) === '.svg');
+            const isSvg = (path.extname(file) === '.svg');
             
             if (isSvg) {
-                const prefix = path.posix.basename(file, path.posix.extname(file));
+                const prefix = path.basename(file, path.extname(file));
                 tpl.source = optimizeSVG(tpl.source, prefix);
             } else { 
                 tpl.source = htmlMinifier.minify(
@@ -247,8 +150,8 @@ class AngularTemplateCacheWebpackPlugin {
                 );
             }
             let htmlRootDir = globParent(this.options.source);
-            let filename = path.posix.relative(htmlRootDir, file);
-            let url = path.posix.join(this.moduleToRoot[module.moduleName], filename);
+            let filename = path.relative(htmlRootDir, file);
+            let url = path.join(this.moduleToRoot[module.moduleName], filename);
             if (this.options.root === '.' || this.options.root.indexOf('./') === 0) {
                 url = './' + url;
             } 
